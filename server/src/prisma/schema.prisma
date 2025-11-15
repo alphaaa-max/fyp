@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  locations Location[]
+  alerts    Alert[]
+
+  @@map("users")
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name      String
+  latitude  Float
+  longitude Float
+  isPrimary Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("locations")
+}
+
+model WeatherCache {
+  id        String   @id @default(cuid())
+  location  String   @unique // Format: "lat,lon"
+  data      Json     // Stores the complete weather data
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+  @@map("weather_cache")
+}
+
+model ForecastHistory {
+  id        String   @id @default(cuid())
+  location  String   // Format: "lat,lon"
+  data      Json     // Stores forecast data
+  predictedFor DateTime // The date this forecast was for
+  createdAt DateTime @default(now())
+
+  @@index([location, predictedFor])
+  @@map("forecast_history")
+}
+
+model Alert {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type      String   // severe, warning, advisory, info
+  title     String
+  message   String
+  location  String
+  severity  Int      @default(1) // 1-5 scale
+
+  isRead    Boolean  @default(false)
+  isActive  Boolean  @default(true)
+
+  startTime DateTime @default(now())
+  endTime   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, isRead])
+  @@index([location, isActive])
+  @@map("alerts")
+}
+
+model ApiLog {
+  id        String   @id @default(cuid())
+  endpoint  String
+  method    String
+  userId    String?
+  ipAddress String?
+  userAgent String?
+  statusCode Int
+  responseTime Int   // in milliseconds
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("api_logs")
+}
+
+model PredictionCache {
+  id        String   @id @default(cuid())
+  location  String   // Format: "lat,lon"
+  type      String   // temperature, rainfall, etc.
+  data      Json     // Prediction results
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([location, type])
+  @@index([expiresAt])
+  @@map("prediction_cache")
+}
