@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { prisma } from '../config/database';
+import { WeatherCache, ForecastHistory } from '../models';
 import { config } from '../config/env';
 import { logger } from '../utils/logger';
 import { AppError } from '../middleware/error.middleware';
@@ -140,9 +140,7 @@ export class WeatherService {
    */
   private async getFromCache(location: string): Promise<any | null> {
     try {
-      const cache = await prisma.weatherCache.findUnique({
-        where: { location },
-      });
+      const cache = await WeatherCache.findOne({ location });
 
       if (!cache) {
         return null;
@@ -151,9 +149,7 @@ export class WeatherService {
       // Check if expired
       if (cache.expiresAt < new Date()) {
         // Delete expired cache
-        await prisma.weatherCache.delete({
-          where: { location },
-        });
+        await WeatherCache.deleteOne({ location });
         return null;
       }
 
@@ -171,18 +167,11 @@ export class WeatherService {
     try {
       const expiresAt = new Date(Date.now() + this.cacheTTL);
 
-      await prisma.weatherCache.upsert({
-        where: { location },
-        create: {
-          location,
-          data,
-          expiresAt,
-        },
-        update: {
-          data,
-          expiresAt,
-        },
-      });
+      await WeatherCache.findOneAndUpdate(
+        { location },
+        { location, data, expiresAt },
+        { upsert: true, new: true }
+      );
     } catch (error) {
       logger.error('Cache write error:', error);
       // Don't throw - caching is not critical
@@ -202,12 +191,10 @@ export class WeatherService {
 
       // Save only the first forecast (closest prediction)
       if (forecast.forecasts.length > 0) {
-        await prisma.forecastHistory.create({
-          data: {
-            location,
-            data: forecast.forecasts[0],
-            predictedFor: forecast.forecasts[0].timestamp,
-          },
+        await ForecastHistory.create({
+          location,
+          data: forecast.forecasts[0],
+          predictedFor: new Date(forecast.forecasts[0].timestamp),
         });
       }
     } catch (error) {
@@ -222,11 +209,9 @@ export class WeatherService {
   async getForecastHistory(lat: number, lon: number, limit: number = 10) {
     const location = `${lat.toFixed(4)},${lon.toFixed(4)}`;
 
-    const history = await prisma.forecastHistory.findMany({
-      where: { location },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    });
+    const history = await ForecastHistory.find({ location })
+      .sort({ createdAt: -1 })
+      .limit(limit);
 
     return history;
   }
@@ -236,19 +221,15 @@ export class WeatherService {
    */
   async clearExpiredCache(): Promise<number> {
     try {
-      const result = await prisma.weatherCache.deleteMany({
-        where: {
-          expiresAt: {
-            lt: new Date(),
-          },
-        },
+      const result = await WeatherCache.deleteMany({
+        expiresAt: { $lt: new Date() },
       });
 
-      if (result.count > 0) {
-        logger.info(`Cleared ${result.count} expired cache entries`);
+      if (result.deletedCount && result.deletedCount > 0) {
+        logger.info(`Cleared ${result.deletedCount} expired cache entries`);
       }
 
-      return result.count;
+      return result.deletedCount || 0;
     } catch (error) {
       logger.error('Cache cleanup error:', error);
       return 0;

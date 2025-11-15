@@ -1,35 +1,39 @@
-import { PrismaClient } from '@prisma/client';
+import mongoose from 'mongoose';
+import { config } from './env';
 import { logger } from '../utils/logger';
 
-const prismaClientSingleton = () => {
-  return new PrismaClient({
-    log: ['error', 'warn'],
-  });
-};
-
-declare global {
-  var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
-}
-
-export const prisma = globalThis.prisma ?? prismaClientSingleton();
-
-if (process.env.NODE_ENV !== 'production') {
-  globalThis.prisma = prisma;
-}
-
-// Test database connection
+// MongoDB connection
 export const connectDatabase = async () => {
   try {
-    await prisma.$connect();
-    logger.info('✅ Database connected successfully');
+    await mongoose.connect(config.database.uri);
+    logger.info('✅ MongoDB connected successfully');
   } catch (error) {
-    logger.error('❌ Database connection failed:', error);
+    logger.error('❌ MongoDB connection failed:', error);
     process.exit(1);
   }
 };
 
-// Graceful shutdown
+// Graceful disconnection
 export const disconnectDatabase = async () => {
-  await prisma.$disconnect();
-  logger.info('Database disconnected');
+  try {
+    await mongoose.connection.close();
+    logger.info('MongoDB disconnected');
+  } catch (error) {
+    logger.error('Error disconnecting from MongoDB:', error);
+  }
 };
+
+// Connection events
+mongoose.connection.on('error', (err) => {
+  logger.error('MongoDB connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  logger.warn('MongoDB disconnected');
+});
+
+mongoose.connection.on('reconnected', () => {
+  logger.info('MongoDB reconnected');
+});
+
+export default mongoose;

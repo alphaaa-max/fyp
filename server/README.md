@@ -6,7 +6,7 @@ Express.js + TypeScript backend server for ForeSight weather application.
 
 - JWT Authentication
 - OpenWeatherMap API Integration
-- PostgreSQL Database with Prisma ORM
+- MongoDB Atlas Database with Mongoose ORM
 - Weather Data Caching
 - Scheduled Weather Updates
 - RESTful API
@@ -21,19 +21,15 @@ npm install
 2. Configure environment variables:
 ```bash
 cp .env.example .env
-# Edit .env with your credentials
+# Edit .env with your MongoDB Atlas connection string and other credentials
 ```
 
-3. Setup database:
-```bash
-npm run prisma:migrate
-npm run prisma:generate
-```
-
-4. Run development server:
+3. Run development server:
 ```bash
 npm run dev
 ```
+
+The database connection will be established automatically when the server starts.
 
 ## API Endpoints
 

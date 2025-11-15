@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../config/database';
+import { User, Location } from '../models';
 import { AppError, asyncHandler } from '../middleware/error.middleware';
 import { UpdateUserDto, LocationDto } from '../types/user.types';
 import { logger } from '../utils/logger';
@@ -14,35 +14,33 @@ export const updateProfile = asyncHandler(
 
     // Check if email is already taken by another user
     if (email) {
-      const existingUser = await prisma.user.findUnique({
-        where: { email },
-      });
+      const existingUser = await User.findOne({ email });
 
       if (existingUser && existingUser.id !== req.user.id) {
         throw new AppError(400, 'Email already in use');
       }
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: req.user.id },
-      data: {
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      {
         ...(name !== undefined && { name }),
         ...(email !== undefined && { email }),
       },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+      { new: true }
+    ).select('-password');
 
-    logger.info(`User updated profile: ${updatedUser.email}`);
+    logger.info(`User updated profile: ${updatedUser?.email}`);
 
     res.json({
       status: 'success',
-      data: updatedUser,
+      data: {
+        id: updatedUser?.id,
+        email: updatedUser?.email,
+        name: updatedUser?.name || null,
+        createdAt: updatedUser?.createdAt,
+        updatedAt: updatedUser?.updatedAt,
+      },
     });
   }
 );
@@ -53,10 +51,8 @@ export const getLocations = asyncHandler(
       throw new AppError(401, 'Not authenticated');
     }
 
-    const locations = await prisma.location.findMany({
-      where: { userId: req.user.id },
-      orderBy: [{ isPrimary: 'desc' }, { createdAt: 'desc' }],
-    });
+    const locations = await Location.find({ userId: req.user.id })
+      .sort({ isPrimary: -1, createdAt: -1 });
 
     res.json({
       status: 'success',
@@ -75,20 +71,18 @@ export const addLocation = asyncHandler(
 
     // If setting as primary, unset other primary locations
     if (isPrimary) {
-      await prisma.location.updateMany({
-        where: { userId: req.user.id, isPrimary: true },
-        data: { isPrimary: false },
-      });
+      await Location.updateMany(
+        { userId: req.user.id, isPrimary: true },
+        { isPrimary: false }
+      );
     }
 
-    const location = await prisma.location.create({
-      data: {
-        userId: req.user.id,
-        name,
-        latitude,
-        longitude,
-        isPrimary: isPrimary || false,
-      },
+    const location = await Location.create({
+      userId: req.user.id,
+      name,
+      latitude,
+      longitude,
+      isPrimary: isPrimary || false,
     });
 
     logger.info(`User ${req.user.email} added location: ${name}`);
@@ -108,21 +102,17 @@ export const deleteLocation = asyncHandler(
 
     const { id } = req.params;
 
-    const location = await prisma.location.findUnique({
-      where: { id },
-    });
+    const location = await Location.findById(id);
 
     if (!location) {
       throw new AppError(404, 'Location not found');
     }
 
-    if (location.userId !== req.user.id) {
+    if (location.userId.toString() !== req.user.id) {
       throw new AppError(403, 'Not authorized to delete this location');
     }
 
-    await prisma.location.delete({
-      where: { id },
-    });
+    await Location.findByIdAndDelete(id);
 
     logger.info(`User ${req.user.email} deleted location: ${location.name}`);
 
@@ -142,33 +132,32 @@ export const updateLocation = asyncHandler(
     const { id } = req.params;
     const { name, isPrimary } = req.body;
 
-    const location = await prisma.location.findUnique({
-      where: { id },
-    });
+    const location = await Location.findById(id);
 
     if (!location) {
       throw new AppError(404, 'Location not found');
     }
 
-    if (location.userId !== req.user.id) {
+    if (location.userId.toString() !== req.user.id) {
       throw new AppError(403, 'Not authorized to update this location');
     }
 
     // If setting as primary, unset other primary locations
     if (isPrimary) {
-      await prisma.location.updateMany({
-        where: { userId: req.user.id, isPrimary: true },
-        data: { isPrimary: false },
-      });
+      await Location.updateMany(
+        { userId: req.user.id, isPrimary: true },
+        { isPrimary: false }
+      );
     }
 
-    const updatedLocation = await prisma.location.update({
-      where: { id },
-      data: {
+    const updatedLocation = await Location.findByIdAndUpdate(
+      id,
+      {
         ...(name !== undefined && { name }),
         ...(isPrimary !== undefined && { isPrimary }),
       },
-    });
+      { new: true }
+    );
 
     res.json({
       status: 'success',

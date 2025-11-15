@@ -6,7 +6,7 @@ dotenv.config();
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.string().default('3000'),
-  DATABASE_URL: z.string(),
+  MONGODB_URI: z.string(),
   JWT_SECRET: z.string(),
   JWT_EXPIRES_IN: z.string().default('7d'),
   OPENWEATHER_API_KEY: z.string(),
@@ -31,7 +31,7 @@ export const config = {
   isDevelopment: env.NODE_ENV === 'development',
   isProduction: env.NODE_ENV === 'production',
   database: {
-    url: env.DATABASE_URL,
+    uri: env.MONGODB_URI,
   },
   jwt: {
     secret: env.JWT_SECRET,

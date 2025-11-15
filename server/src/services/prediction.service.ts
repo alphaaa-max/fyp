@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { config } from '../config/env';
 import { logger } from '../utils/logger';
-import { prisma } from '../config/database';
+import { PredictionCache } from '../models';
 import { PredictionResponse } from '../types/weather.types';
 
 export class PredictionService {
@@ -99,28 +99,14 @@ export class PredictionService {
    */
   private async getFromCache(location: string, type: string): Promise<PredictionResponse | null> {
     try {
-      const cache = await prisma.predictionCache.findUnique({
-        where: {
-          location_type: {
-            location,
-            type,
-          },
-        },
-      });
+      const cache = await PredictionCache.findOne({ location, type });
 
       if (!cache) {
         return null;
       }
 
       if (cache.expiresAt < new Date()) {
-        await prisma.predictionCache.delete({
-          where: {
-            location_type: {
-              location,
-              type,
-            },
-          },
-        });
+        await PredictionCache.deleteOne({ location, type });
         return null;
       }
 
@@ -142,24 +128,11 @@ export class PredictionService {
     try {
       const expiresAt = new Date(Date.now() + this.cacheTTL);
 
-      await prisma.predictionCache.upsert({
-        where: {
-          location_type: {
-            location,
-            type,
-          },
-        },
-        create: {
-          location,
-          type,
-          data,
-          expiresAt,
-        },
-        update: {
-          data,
-          expiresAt,
-        },
-      });
+      await PredictionCache.findOneAndUpdate(
+        { location, type },
+        { location, type, data, expiresAt },
+        { upsert: true, new: true }
+      );
     } catch (error) {
       logger.error('Prediction cache write error:', error);
     }

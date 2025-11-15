@@ -1,4 +1,4 @@
-import { prisma } from '../config/database';
+import { Alert } from '../models';
 import { logger } from '../utils/logger';
 import { CONSTANTS } from '../config/constants';
 import { CurrentWeather } from '../types/weather.types';
@@ -113,11 +113,9 @@ export class AlertService {
     // Save alerts to database
     for (const alert of alerts) {
       try {
-        await prisma.alert.create({
-          data: {
-            userId,
-            ...alert,
-          },
+        await Alert.create({
+          userId,
+          ...alert,
         });
       } catch (error) {
         logger.error('Failed to save alert:', error);
@@ -133,14 +131,17 @@ export class AlertService {
    * Get active alerts for user
    */
   async getUserAlerts(userId: string, unreadOnly: boolean = false) {
-    const alerts = await prisma.alert.findMany({
-      where: {
-        userId,
-        isActive: true,
-        ...(unreadOnly && { isRead: false }),
-      },
-      orderBy: [{ severity: 'desc' }, { createdAt: 'desc' }],
-    });
+    const query: any = {
+      userId,
+      isActive: true,
+    };
+
+    if (unreadOnly) {
+      query.isRead = false;
+    }
+
+    const alerts = await Alert.find(query)
+      .sort({ severity: -1, createdAt: -1 });
 
     return alerts;
   }
@@ -149,18 +150,17 @@ export class AlertService {
    * Mark alert as read
    */
   async markAlertAsRead(alertId: string, userId: string) {
-    const alert = await prisma.alert.findUnique({
-      where: { id: alertId },
-    });
+    const alert = await Alert.findById(alertId);
 
-    if (!alert || alert.userId !== userId) {
+    if (!alert || alert.userId.toString() !== userId) {
       throw new Error('Alert not found');
     }
 
-    return prisma.alert.update({
-      where: { id: alertId },
-      data: { isRead: true },
-    });
+    return Alert.findByIdAndUpdate(
+      alertId,
+      { isRead: true },
+      { new: true }
+    );
   }
 
   /**
@@ -169,21 +169,21 @@ export class AlertService {
   async deactivateOldAlerts(hoursOld: number = 24) {
     const cutoffTime = new Date(Date.now() - hoursOld * 60 * 60 * 1000);
 
-    const result = await prisma.alert.updateMany({
-      where: {
-        createdAt: { lt: cutoffTime },
+    const result = await Alert.updateMany(
+      {
+        createdAt: { $lt: cutoffTime },
         isActive: true,
       },
-      data: {
+      {
         isActive: false,
-      },
-    });
+      }
+    );
 
-    if (result.count > 0) {
-      logger.info(`Deactivated ${result.count} old alerts`);
+    if (result.modifiedCount && result.modifiedCount > 0) {
+      logger.info(`Deactivated ${result.modifiedCount} old alerts`);
     }
 
-    return result.count;
+    return result.modifiedCount || 0;
   }
 }
 

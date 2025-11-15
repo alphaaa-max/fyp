@@ -28,7 +28,7 @@ fyp/
 
 1. **Server** (`/server`) - ✅ **COMPLETE**
    - Express.js REST API with TypeScript
-   - PostgreSQL database with Prisma ORM
+   - MongoDB Atlas database with Mongoose ORM
    - JWT authentication with bcrypt
    - OpenWeatherMap API integration
    - Redis-like caching layer
@@ -63,7 +63,7 @@ fyp/
 
 - Node.js 18+
 - Python 3.11+
-- PostgreSQL 14+
+- MongoDB Atlas account (free tier works)
 - npm or yarn
 - Expo CLI
 
@@ -74,13 +74,11 @@ cd server
 npm install
 cp .env.example .env
 # Edit .env with your credentials:
-# - DATABASE_URL (PostgreSQL connection string)
+# - DATABASE_URL (MongoDB Atlas connection string)
 # - JWT_SECRET (random secret key)
 # - OPENWEATHER_API_KEY (from openweathermap.org)
 
 # Run database migrations
-npm run prisma:migrate
-npm run prisma:generate
 
 # Start development server
 npm run dev
@@ -159,8 +157,8 @@ npm start
 ### Backend
 - **Express.js** - Web framework
 - **TypeScript** - Type safety
-- **PostgreSQL** - Database
-- **Prisma ORM** - Database ORM
+- **MongoDB Atlas** - Database
+- **Mongoose** - Database ORM
 - **JWT** - Authentication
 - **Zod** - Validation
 - **Node-Cron** - Scheduled tasks

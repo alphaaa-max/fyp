@@ -2,7 +2,7 @@ import cron from 'node-cron';
 import { weatherService } from './weather.service';
 import { alertService } from './alert.service';
 import { logger } from '../utils/logger';
-import { prisma } from '../config/database';
+import { Location } from '../models';
 
 export class SchedulerService {
   private tasks: cron.ScheduledTask[] = [];
@@ -54,13 +54,9 @@ export class SchedulerService {
   private async updateAllLocationsWeather() {
     try {
       // Get all unique locations from users
-      const locations = await prisma.location.findMany({
-        select: {
-          latitude: true,
-          longitude: true,
-        },
-        distinct: ['latitude', 'longitude'],
-      });
+      const locations = await Location.find()
+        .select('latitude longitude')
+        .distinct('latitude');
 
       logger.info(`Updating weather for ${locations.length} locations`);
 
