@@ -5,6 +5,7 @@ import { connectDatabase, disconnectDatabase } from './config/database';
 import { logger } from './utils/logger';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 import { CONSTANTS } from './config/constants';
+import routes from './routes';
 
 const app = express();
 
@@ -28,11 +29,8 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes (will be added)
-// app.use(`${CONSTANTS.API_PREFIX}/auth`, authRoutes);
-// app.use(`${CONSTANTS.API_PREFIX}/weather`, weatherRoutes);
-// app.use(`${CONSTANTS.API_PREFIX}/user`, userRoutes);
-// app.use(`${CONSTANTS.API_PREFIX}/alerts`, alertRoutes);
+// API routes
+app.use(CONSTANTS.API_PREFIX, routes);
 
 // Error handlers
 app.use(notFoundHandler);
