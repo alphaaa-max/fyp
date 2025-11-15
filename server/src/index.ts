@@ -6,6 +6,7 @@ import { logger } from './utils/logger';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 import { CONSTANTS } from './config/constants';
 import routes from './routes';
+import { schedulerService } from './services/scheduler.service';
 
 const app = express();
 
@@ -41,6 +42,9 @@ const startServer = async () => {
   try {
     await connectDatabase();
 
+    // Start scheduler for background tasks
+    schedulerService.start();
+
     app.listen(config.port, () => {
       logger.info(`🚀 Server running on port ${config.port}`);
       logger.info(`📝 Environment: ${config.nodeEnv}`);
@@ -55,12 +59,14 @@ const startServer = async () => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
+  schedulerService.stop();
   await disconnectDatabase();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   logger.info('SIGINT received, shutting down gracefully');
+  schedulerService.stop();
   await disconnectDatabase();
   process.exit(0);
 });
