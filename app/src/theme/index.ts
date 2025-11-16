@@ -3,7 +3,7 @@
  * Centralized design system for ForeSight app
  */
 
-import WeatherColors, { getWeatherGradient, getTemperatureColor, getAlertColor } from './colors';
+import WeatherColors, { Colors, getWeatherGradient, getTemperatureColor, getAlertColor } from './colors';
 import Typography from './typography';
 import Spacing, { BorderRadius, Shadows, GlassCard, ScreenPadding } from './spacing';
 
@@ -20,6 +20,7 @@ export const Theme = {
 // Export helper functions
 export {
   WeatherColors,
+  Colors,
   Typography,
   Spacing,
   BorderRadius,

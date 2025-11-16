@@ -27,6 +27,13 @@ export const WeatherColors = {
     extremeCold: '#3742fa',   // Below -10°C - Dark Blue
   },
 
+  // Primary colors
+  primary: {
+    main: '#4A90E2',
+    dark: '#357ABD',
+    light: '#6FA8E8',
+  },
+
   // UI colors
   background: {
     primary: '#FFFFFF',
@@ -39,9 +46,19 @@ export const WeatherColors = {
     primary: '#212121',
     secondary: '#757575',
     tertiary: '#9E9E9E',
+    white: '#FFFFFF',
     inverse: '#FFFFFF',
     light: '#E0E0E0',
   },
+
+  // Status colors
+  success: '#4CAF50',
+  error: '#F44336',
+  warning: '#FF9800',
+  info: '#2196F3',
+
+  // Border color
+  border: '#E0E0E0',
 
   // Alert colors (matching backend alert types)
   alerts: {
@@ -126,5 +143,8 @@ export const getTemperatureColor = (temp: number): string => {
 export const getAlertColor = (type: 'severe' | 'warning' | 'advisory' | 'info'): string => {
   return WeatherColors.alerts[type];
 };
+
+// Export as Colors for easier usage in components
+export const Colors = WeatherColors;
 
 export default WeatherColors;
