@@ -66,7 +66,7 @@ const ForecastScreen: React.FC = () => {
                 <View key={index} style={styles.forecastCard}>
                   <View style={styles.forecastHeader}>
                     <Text style={styles.forecastDate}>
-                      {format(new Date(day.date), 'EEE, MMM d')}
+                      {format(new Date(day.timestamp), 'EEE, MMM d')}
                     </Text>
                   </View>
                   <View style={styles.forecastBody}>

@@ -5,57 +5,18 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuthStore } from '../../store';
 import { Colors, WeatherColors } from '../../theme/colors';
 import { Spacing } from '../../theme/spacing';
 
 const SettingsScreen: React.FC = () => {
-  const { user, clearAuth } = useAuthStore();
-
-  const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            await clearAuth();
-          },
-        },
-      ],
-    );
-  };
-
   return (
     <LinearGradient colors={WeatherColors.sky.clearDay} style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Text style={styles.title}>Settings</Text>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Account</Text>
-            <View style={styles.card}>
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Name</Text>
-                <Text style={styles.value}>{user?.name || 'Not set'}</Text>
-              </View>
-              <View style={styles.divider} />
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Email</Text>
-                <Text style={styles.value}>{user?.email}</Text>
-              </View>
-            </View>
-          </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Preferences</Text>
@@ -71,8 +32,28 @@ const SettingsScreen: React.FC = () => {
               </TouchableOpacity>
               <View style={styles.divider} />
               <TouchableOpacity style={styles.settingItem}>
+                <Text style={styles.settingLabel}>Pressure Unit</Text>
+                <Text style={styles.settingValue}>hPa</Text>
+              </TouchableOpacity>
+              <View style={styles.divider} />
+              <TouchableOpacity style={styles.settingItem}>
                 <Text style={styles.settingLabel}>Notifications</Text>
                 <Text style={styles.settingValue}>Enabled</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Location</Text>
+            <View style={styles.card}>
+              <TouchableOpacity style={styles.settingItem}>
+                <Text style={styles.settingLabel}>Default Location</Text>
+                <Text style={styles.settingValue}>London</Text>
+              </TouchableOpacity>
+              <View style={styles.divider} />
+              <TouchableOpacity style={styles.settingItem}>
+                <Text style={styles.settingLabel}>Use Current Location</Text>
+                <Text style={styles.settingValue}>Off</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -81,20 +62,21 @@ const SettingsScreen: React.FC = () => {
             <Text style={styles.sectionTitle}>About</Text>
             <View style={styles.card}>
               <View style={styles.infoRow}>
+                <Text style={styles.label}>App Name</Text>
+                <Text style={styles.value}>ForeSight</Text>
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.infoRow}>
                 <Text style={styles.label}>Version</Text>
                 <Text style={styles.value}>1.0.0</Text>
               </View>
               <View style={styles.divider} />
               <View style={styles.infoRow}>
-                <Text style={styles.label}>App Name</Text>
-                <Text style={styles.value}>ForeSight</Text>
+                <Text style={styles.label}>Description</Text>
+                <Text style={styles.value}>Predictive Weather Insights</Text>
               </View>
             </View>
           </View>
-
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutButtonText}>Logout</Text>
-          </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -147,6 +129,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
+    maxWidth: '60%',
+    textAlign: 'right',
   },
   settingItem: {
     flexDirection: 'row',
@@ -166,18 +150,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: Colors.border,
     marginHorizontal: Spacing.md,
-  },
-  logoutButton: {
-    backgroundColor: Colors.error,
-    borderRadius: 12,
-    padding: Spacing.md,
-    alignItems: 'center',
-    marginTop: Spacing.xl,
-  },
-  logoutButtonText: {
-    color: Colors.text.white,
-    fontSize: 18,
-    fontWeight: 'bold',
   },
 });
 
