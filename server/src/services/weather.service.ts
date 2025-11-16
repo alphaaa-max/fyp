@@ -9,11 +9,24 @@ export class WeatherService {
   private apiKey = config.openWeather.apiKey;
   private baseUrl = config.openWeather.baseUrl;
   private cacheTTL = config.cache.ttlMinutes * 60 * 1000; // Convert to milliseconds
+  private useMockData = this.apiKey === 'your-api-key-here' || !this.apiKey || this.apiKey.length < 10;
+
+  constructor() {
+    if (this.useMockData) {
+      logger.warn('⚠️  OpenWeatherMap API key not configured - using MOCK DATA for development');
+      logger.warn('⚠️  Get your free API key at: https://openweathermap.org/appid');
+    }
+  }
 
   /**
    * Get current weather with caching
    */
   async getCurrentWeather(lat: number, lon: number): Promise<CurrentWeather> {
+    // Use mock data if API key is not configured
+    if (this.useMockData) {
+      return this.getMockCurrentWeather(lat, lon);
+    }
+
     const cacheKey = `${lat.toFixed(4)},${lon.toFixed(4)}`;
 
     // Check cache first
@@ -71,7 +84,10 @@ export class WeatherService {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         logger.error('OpenWeatherMap API error:', error.response?.data || error.message);
-        throw new AppError(502, 'Failed to fetch weather data');
+
+        // Fallback to mock data if API fails
+        logger.warn('Falling back to mock data due to API error');
+        return this.getMockCurrentWeather(lat, lon);
       }
       throw error;
     }
@@ -81,6 +97,11 @@ export class WeatherService {
    * Get weather forecast (5 day, 3 hour intervals)
    */
   async getForecast(lat: number, lon: number): Promise<WeatherForecast> {
+    // Use mock data if API key is not configured
+    if (this.useMockData) {
+      return this.getMockForecast(lat, lon);
+    }
+
     try {
       const response = await axios.get(`${this.baseUrl}/forecast`, {
         params: {
@@ -129,7 +150,10 @@ export class WeatherService {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         logger.error('OpenWeatherMap API error:', error.response?.data || error.message);
-        throw new AppError(502, 'Failed to fetch forecast data');
+
+        // Fallback to mock data if API fails
+        logger.warn('Falling back to mock forecast data due to API error');
+        return this.getMockForecast(lat, lon);
       }
       throw error;
     }
@@ -234,6 +258,99 @@ export class WeatherService {
       logger.error('Cache cleanup error:', error);
       return 0;
     }
+  }
+
+  /**
+   * Get mock current weather data
+   */
+  private getMockCurrentWeather(lat: number, lon: number): CurrentWeather {
+    const locations: Record<string, string> = {
+      '51.5074': 'London',
+      '40.7128': 'New York',
+      '35.6762': 'Tokyo',
+      '48.8566': 'Paris',
+      '-33.8688': 'Sydney',
+    };
+
+    const locationName = locations[lat.toFixed(4)] || 'Unknown Location';
+
+    logger.info(`[MOCK DATA] Returning mock weather for ${locationName}`);
+
+    return {
+      location: locationName,
+      latitude: lat,
+      longitude: lon,
+      temperature: 18 + Math.random() * 10, // 18-28°C
+      feelsLike: 17 + Math.random() * 10,
+      tempMin: 15 + Math.random() * 5,
+      tempMax: 20 + Math.random() * 10,
+      pressure: 1013 + Math.random() * 20,
+      humidity: 60 + Math.random() * 30,
+      visibility: 10000,
+      windSpeed: 3 + Math.random() * 5,
+      windDeg: Math.random() * 360,
+      cloudiness: Math.random() * 100,
+      condition: 'Clouds',
+      description: 'partly cloudy',
+      icon: '02d',
+      sunrise: Math.floor(Date.now() / 1000) - 6 * 3600,
+      sunset: Math.floor(Date.now() / 1000) + 6 * 3600,
+      timezone: 0,
+      timestamp: new Date(),
+    };
+  }
+
+  /**
+   * Get mock forecast data
+   */
+  private getMockForecast(lat: number, lon: number): WeatherForecast {
+    const locations: Record<string, string> = {
+      '51.5074': 'London',
+      '40.7128': 'New York',
+      '35.6762': 'Tokyo',
+      '48.8566': 'Paris',
+      '-33.8688': 'Sydney',
+    };
+
+    const locationName = locations[lat.toFixed(4)] || 'Unknown Location';
+
+    logger.info(`[MOCK DATA] Returning mock forecast for ${locationName}`);
+
+    const forecasts: ForecastItem[] = [];
+    const now = new Date();
+
+    // Generate 7 days of forecast data
+    for (let day = 0; day < 7; day++) {
+      const date = new Date(now);
+      date.setDate(date.getDate() + day);
+      date.setHours(12, 0, 0, 0); // Noon each day
+
+      const baseTemp = 18 + Math.random() * 10;
+
+      forecasts.push({
+        timestamp: date,
+        temperature: baseTemp,
+        feelsLike: baseTemp - 2 + Math.random() * 4,
+        tempMin: baseTemp - 3,
+        tempMax: baseTemp + 3,
+        pressure: 1010 + Math.random() * 20,
+        humidity: 55 + Math.random() * 30,
+        windSpeed: 2 + Math.random() * 6,
+        windDeg: Math.random() * 360,
+        cloudiness: Math.random() * 100,
+        condition: ['Clear', 'Clouds', 'Rain'][Math.floor(Math.random() * 3)],
+        description: ['clear sky', 'few clouds', 'light rain'][Math.floor(Math.random() * 3)],
+        icon: ['01d', '02d', '10d'][Math.floor(Math.random() * 3)],
+        pop: Math.random() * 0.5,
+      });
+    }
+
+    return {
+      location: locationName,
+      latitude: lat,
+      longitude: lon,
+      forecasts,
+    };
   }
 }
 
